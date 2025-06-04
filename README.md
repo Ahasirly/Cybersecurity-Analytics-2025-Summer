@@ -144,11 +144,11 @@ python clean_datasets.py
 
 ## Expected Outcomes
 - Model 1: Accuracy >98.6%
+  - Low false positive rate
+  - Fast response time
 - Model 2: Minimum MSE, R² close to 1
+  - Accurate time prediction
+  - Interpretable prediction results
 - Model 3: High F1 score, accurate high-risk user identification
-
-## Timeline
-- June 4: Complete data cleaning
-- June 5: Start model training
-- Mid-June: Implementation deployment
-- End of June: Submit report
+  - Precise risk classification
+  - Actionable security recommendations
