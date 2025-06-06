@@ -131,17 +131,6 @@ cd src
 # Run data cleaning script
 python clean_datasets.py
 ```
-
-## Next Steps
-1. Model Training (June 5)
-   - Model 1A: URL Detection
-   - Model 1B: Network Traffic Detection
-   - Model 2: Online Time Prediction
-   - Model 3: Behavior Risk Classification
-2. Browser Deployment Implementation
-3. Real-time Detection Testing
-4. Proposal Report Submission
-
 ## Expected Outcomes
 - Model 1: Accuracy >98.6%
   - Low false positive rate
