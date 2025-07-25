@@ -1,4 +1,4 @@
-# Cybersecurity Fusion System
+# Cybersecurity Analytic System
 
 A comprehensive AI-powered cybersecurity threat detection and analysis system that combines multiple machine learning models for real-time security assessment.
 
@@ -302,17 +302,14 @@ The system includes pre-trained models for:
 1. **URL Detection Model** (`malicious_url_model.h5`)
    - Architecture: Convolutional Neural Network
    - Features: 56 URL-based features
-   - Accuracy: >95%
 
 2. **Network Traffic Model** (`cnn_network_model.h5`)
    - Architecture: CNN for sequential data
    - Features: 78 network flow features
-   - Detection: Various attack types (DDoS, Botnet, etc.)
 
 3. **User Behavior Model** (`dnn_user_mixed_model.h5`)
    - Architecture: Deep Neural Network
-   - Features: 19 behavioral features
-   - Purpose: Insider threat detection
+   - Features: 9 behavioral features
 
 ## Dataset Information
 
@@ -320,26 +317,3 @@ The system includes pre-trained models for:
 - **Network Dataset**: 50,000 network flow records
 - **User Dataset**: 9,537 user behavior profiles
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/new-feature`)
-5. Create a Pull Request
-
-## License
-
-This project is developed for academic and research purposes. Please refer to the license file for usage terms.
-
-## Support
-
-For technical support or questions:
-1. Check the troubleshooting section above
-2. Review existing GitHub issues
-3. Create a new issue with detailed error information
-4. Include system information (OS, Python version, Node.js version)
-
-## Acknowledgments
-
-This project was developed as part of the 2025 Summer Cybersecurity Analytics research initiative, incorporating state-of-the-art machine learning techniques for comprehensive threat detection and analysis. 
