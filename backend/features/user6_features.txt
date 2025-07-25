@@ -1,0 +1,9 @@
+network_packet_size
+login_attempts
+session_duration
+ip_reputation_score
+failed_logins
+unusual_time_access
+protocol_type
+encryption_used
+browser_type
