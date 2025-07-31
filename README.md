@@ -173,6 +173,12 @@ This project is developed for educational and research purposes in cybersecurity
 - **Data Files**: Ensure CSV datasets are present in `/data/` directory
 - **LLM API**: Verify OpenAI API key is configured in backend
 
+### LLM Configuration
+To enable ChatGPT expert analysis, set your OpenAI API key:
+```bash
+export OPENAI_API_KEY="your-openai-api-key-here"
+```
+
 ### Debug Mode
 Set `DEBUG=True` in `app.py` for detailed error logging and hot reloading.
 
