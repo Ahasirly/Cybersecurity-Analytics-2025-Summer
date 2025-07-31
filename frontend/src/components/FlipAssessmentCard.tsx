@@ -22,6 +22,25 @@ const FlipAssessmentCard: React.FC<FlipAssessmentCardProps> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
+  // Function to render markdown-like formatting
+  const renderMarkdownText = (text: string): string => {
+    let formattedText = text;
+    
+    // Convert **bold** to HTML
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #dc2626; font-weight: 700;">$1</strong>');
+    
+    // Convert `code` to HTML
+    formattedText = formattedText.replace(/`(.*?)`/g, '<code style="background: #f3f4f6; color: #1f2937; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em;">$1</code>');
+    
+    // Convert > blockquotes to HTML
+    formattedText = formattedText.replace(/^> (.+)$/gm, '<blockquote style="border-left: 4px solid #f59e0b; padding-left: 12px; margin: 8px 0; font-style: italic; color: #92400e;">$1</blockquote>');
+    
+    // Convert line breaks
+    formattedText = formattedText.replace(/\n/g, '<br/>');
+    
+    return formattedText;
+  };
+
   // Reset to front face when getting a new sample
   useEffect(() => {
     if (prediction === null) {
@@ -348,17 +367,108 @@ const FlipAssessmentCard: React.FC<FlipAssessmentCardProps> = ({
                 ))}
               </div>
 
+              {/* LLM Expert Analysis */}
+              {prediction.llm_analysis && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fefce8, #fef3c7)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  border: '2px solid #f59e0b',
+                  boxShadow: '0 8px 25px -5px rgba(245, 158, 11, 0.2), 0 4px 6px -2px rgba(245, 158, 11, 0.1)',
+                  marginBottom: '1rem',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Background decoration */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '-10px',
+                    width: '60px',
+                    height: '60px',
+                    background: 'linear-gradient(45deg, #fbbf24, #f59e0b)',
+                    borderRadius: '50%',
+                    opacity: '0.1'
+                  }}></div>
+                  
+                  <div style={{ 
+                    fontSize: '1.1rem', 
+                    fontWeight: '700', 
+                    color: '#92400e',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px'
+                    }}>
+                      💡
+                    </div>
+                    Expert Security Insights
+                  </div>
+                  
+                                     <div style={{ 
+                     fontSize: '0.95rem', 
+                     color: '#78350f',
+                     lineHeight: '1.7',
+                     position: 'relative',
+                     zIndex: 1,
+                     padding: '0.5rem',
+                     background: 'rgba(255, 255, 255, 0.3)',
+                     borderRadius: '8px',
+                     border: '1px solid rgba(245, 158, 11, 0.2)'
+                   }}
+                   dangerouslySetInnerHTML={{
+                     __html: renderMarkdownText(prediction.llm_analysis)
+                   }}>
+                   </div>
+                </div>
+              )}
+
             </>
           ) : (
             <div style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
               fontSize: '1.25rem',
               color: '#6b7280'
             }}>
-              No prediction results yet
+              {isSubmitting ? (
+                <>
+                  {/* Loading Animation */}
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    border: '6px solid #e5e7eb',
+                    borderTop: '6px solid #3b82f6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginBottom: '1rem'
+                  }}></div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#4b5563', marginBottom: '0.5rem' }}>
+                    Analyzing Security Patterns...
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
+                    Our AI is examining URL structure, network traffic,<br/>
+                    and user behavior to provide expert insights
+                  </div>
+                </>
+              ) : (
+                <div>No prediction results yet</div>
+              )}
             </div>
           )}
         </div>

@@ -164,7 +164,14 @@ function App() {
   }
 
   return (
-    <div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #e0f2fe 100%)',
+      backgroundAttachment: 'fixed',
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat',
+      overflowX: 'hidden'
+    }}>
       {/* Header */}
       <header className="bg-white sticky top-0 z-50" style={{
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -229,7 +236,10 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="container py-8">
+      <main className="container py-8" style={{
+        minHeight: 'calc(100vh - 80px)', // Subtract header height
+        paddingBottom: '2rem'
+      }}>
         {error && (
           <div style={{
             backgroundColor: '#fef2f2',

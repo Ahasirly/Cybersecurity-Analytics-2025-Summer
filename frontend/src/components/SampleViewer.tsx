@@ -452,41 +452,98 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId, riskScore
   };
 
   const getValueStatus = (featureName: string, value: number | string, riskScores?: any) => {
-    // Only mark as abnormal when ML risk scores are available, based on overall category risk
-    if (riskScores) {
-      // URL features based on URL risk score
-      const urlFeatures = ['url_entropy', 'url_count_dot', 'url_len', 'url_count_hyphen', 'url_count_letter', 'url_count_digit'];
-      // Network features based on Network risk score  
-      const networkFeatures = ['Flow Duration', 'Tot Fwd Pkts', 'Flow Pkts/s', 'Fwd Pkt Len Max', 'Pkt Len Mean', 'Pkt Size Avg', 'Flow Byts/s'];
-      // User features based on User risk score
-      const userFeatures = ['login_attempts', 'failed_logins', 'session_duration', 'ip_reputation_score', 'browser_type', 'encryption_used', 'protocol_type'];
-      
-      let categoryRisk = 0;
-      if (urlFeatures.includes(featureName)) {
-        categoryRisk = riskScores.url_risk || 0;
-      } else if (networkFeatures.includes(featureName)) {
-        categoryRisk = riskScores.network_risk || 0;
-      } else if (userFeatures.includes(featureName)) {
-        categoryRisk = riskScores.user_risk || 0;
-      }
-      
-      // Based on ML model category risk judgment
-      if (categoryRisk >= 0.7) { // 70% or more high risk
-        return { status: 'danger', color: '#dc2626' };
-      } else if (categoryRisk >= 0.5) { // 50% or more moderate risk
-        return { status: 'abnormal', color: '#d97706' };
-      }
-    }
-    
     // For string types, check for explicit known risk values
     if (typeof value === 'string') {
       const highRiskValues = ['DES', 'MD5']; // Explicitly high risk
       if (highRiskValues.includes(value)) {
         return { status: 'danger', color: '#dc2626' };
       }
+      return { status: 'normal', color: '#374151' };
     }
     
-    // Default to normal (avoid false positives based on inaccurate thresholds)
+    // For numeric values, use hybrid approach: statistical thresholds + ML category risk
+    if (typeof value === 'number') {
+      // Define statistical thresholds for extreme anomalies
+      const extremeThresholds: Record<string, { danger: number, abnormal: number }> = {
+        // URL features - entropy and counts
+        'url_entropy': { danger: 6.0, abnormal: 5.0 },
+        'url_count_dot': { danger: 8, abnormal: 5 },
+        'url_len': { danger: 200, abnormal: 100 },
+        'url_count_hyphen': { danger: 10, abnormal: 6 },
+        'url_count_letter': { danger: 150, abnormal: 80 },
+        'url_count_digit': { danger: 50, abnormal: 30 },
+        
+        // Network features - extreme traffic patterns
+        'Flow Duration': { danger: 100000000, abnormal: 50000000 }, // microseconds
+        'Tot Fwd Pkts': { danger: 10000, abnormal: 5000 },
+        'Flow Pkts/s': { danger: 50000, abnormal: 20000 },
+        'Fwd Pkt Len Max': { danger: 2000, abnormal: 1500 },
+        'Pkt Len Mean': { danger: 1200, abnormal: 800 },
+        'Pkt Size Avg': { danger: 1200, abnormal: 800 },
+        'Flow Byts/s': { danger: 100000000, abnormal: 50000000 }, // bytes/second
+        
+        // User features - suspicious behavior patterns
+        'login_attempts': { danger: 20, abnormal: 10 },
+        'failed_logins': { danger: 10, abnormal: 5 },
+        'session_duration': { danger: 86400, abnormal: 43200 }, // seconds (24h/12h)
+        'ip_reputation_score': { danger: 0.2, abnormal: 0.4 } // low score = high risk
+      };
+      
+      // First check statistical thresholds
+      let statisticalStatus = 'normal';
+      const threshold = extremeThresholds[featureName];
+      if (threshold) {
+        // Special handling for ip_reputation_score (lower is worse)
+        if (featureName === 'ip_reputation_score') {
+          if (value <= threshold.danger) {
+            statisticalStatus = 'danger';
+          } else if (value <= threshold.abnormal) {
+            statisticalStatus = 'abnormal';
+          }
+        } else {
+          // Normal handling (higher is worse)
+          if (value >= threshold.danger) {
+            statisticalStatus = 'danger';
+          } else if (value >= threshold.abnormal) {
+            statisticalStatus = 'abnormal';
+          }
+        }
+      }
+      
+      // Then consider ML category risk if available
+      if (riskScores && statisticalStatus !== 'normal') {
+        const urlFeatures = ['url_entropy', 'url_count_dot', 'url_len', 'url_count_hyphen', 'url_count_letter', 'url_count_digit'];
+        const networkFeatures = ['Flow Duration', 'Tot Fwd Pkts', 'Flow Pkts/s', 'Fwd Pkt Len Max', 'Pkt Len Mean', 'Pkt Size Avg', 'Flow Byts/s'];
+        const userFeatures = ['login_attempts', 'failed_logins', 'session_duration', 'ip_reputation_score', 'browser_type', 'encryption_used', 'protocol_type'];
+        
+        let categoryRisk = 0;
+        if (urlFeatures.includes(featureName)) {
+          categoryRisk = riskScores.url_risk || 0;
+        } else if (networkFeatures.includes(featureName)) {
+          categoryRisk = riskScores.network_risk || 0;
+        } else if (userFeatures.includes(featureName)) {
+          categoryRisk = riskScores.user_risk || 0;
+        }
+        
+        // Only show highlighting if BOTH statistical threshold is exceeded AND category risk is elevated
+        if (categoryRisk >= 0.3) { // 30% category risk threshold for highlighting
+          if (statisticalStatus === 'danger') {
+            return { status: 'danger', color: '#dc2626' };
+          } else if (statisticalStatus === 'abnormal') {
+            return { status: 'abnormal', color: '#d97706' };
+          }
+        }
+      } else if (!riskScores && statisticalStatus !== 'normal') {
+        // If no ML scores available, fall back to statistical thresholds only
+        if (statisticalStatus === 'danger') {
+          return { status: 'danger', color: '#dc2626' };
+        } else if (statisticalStatus === 'abnormal') {
+          return { status: 'abnormal', color: '#d97706' };
+        }
+      }
+    }
+    
+    // Default to normal
     return { status: 'normal', color: '#374151' };
   };
 

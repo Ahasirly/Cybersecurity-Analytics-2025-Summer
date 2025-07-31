@@ -13,11 +13,14 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from tensorflow.keras.models import load_model
+import openai
 import random
 
 # ────────────────────────────── Configuration ──────────────────────────────
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend integration
+
+
 
 # ────────────────────────────── Paths ──────────────────────────────
 BASE = Path(__file__).resolve().parent
@@ -624,16 +627,88 @@ def predict_teaching():
         else:
             risk_level = "Safe"
         
+        # Generate LLM analysis
+        llm_analysis = generate_llm_analysis(
+            url_risk, network_risk, user_risk, 
+            final_confidence, risk_level,
+            url_sample_id, network_sample_id, user_sample_id
+        )
+        
         return jsonify({
             "url_risk": round(url_risk, 4),
             "network_risk": round(network_risk, 4),
             "user_risk": round(user_risk, 4),
             "final_risk_level": risk_level,
-            "confidence": round(final_confidence, 4)
+            "confidence": round(final_confidence, 4),
+            "llm_analysis": llm_analysis
         })
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+def generate_llm_analysis(url_risk, network_risk, user_risk, final_confidence, risk_level, url_sample_id, network_sample_id, user_sample_id):
+    """Generate detailed analysis using ChatGPT"""
+    try:
+        # Get sample data to provide context
+        url_sample = url_data.iloc[url_sample_id] if url_sample_id < len(url_data) else None
+        network_sample = network_data.iloc[network_sample_id] if network_sample_id < len(network_data) else None
+        user_sample = user_data.iloc[user_sample_id] if user_sample_id < len(user_data) else None
+        
+        # Extract key features for analysis
+        context_info = []
+        
+        if url_sample is not None:
+            context_info.append(f"URL features: entropy={url_sample.get('url_entropy', 'N/A'):.2f}, length={url_sample.get('url_len', 'N/A')}, dots={url_sample.get('url_count_dot', 'N/A')}")
+        
+        if network_sample is not None:
+            context_info.append(f"Network features: flow_duration={network_sample.get('Flow Duration', 'N/A')}, packets={network_sample.get('Tot Fwd Pkts', 'N/A')}, bytes_per_sec={network_sample.get('Flow Byts/s', 'N/A')}")
+        
+        if user_sample is not None:
+            context_info.append(f"User features: login_attempts={user_sample.get('login_attempts', 'N/A')}, failed_logins={user_sample.get('failed_logins', 'N/A')}, session_duration={user_sample.get('session_duration', 'N/A')}")
+        
+        context = " | ".join(context_info)
+        
+        # Create prompt for ChatGPT
+        prompt = f"""As a cybersecurity expert, analyze this security assessment result and return your response in markdown format with appropriate highlighting:
+
+Risk Assessment:
+- URL Risk: {url_risk*100:.1f}%
+- Network Risk: {network_risk*100:.1f}%  
+- User Risk: {user_risk*100:.1f}%
+- Final Assessment: {risk_level} (Confidence: {final_confidence*100:.1f}%)
+
+Sample Data Context:
+{context}
+
+Please provide a concise analysis (max 150 words) in markdown format explaining:
+1. Why the system gave this assessment
+2. Which specific features contributed most to the risk
+3. What normal vs abnormal patterns look like for the concerning features
+4. Brief security implications
+
+Use markdown formatting:
+- Use **bold** for important risk levels and key findings
+- Use `code` for technical terms like entropy, packets, bytes
+- Use > blockquotes for key insights
+- Keep it educational and practical for cybersecurity learning"""
+
+        # Call OpenAI API
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY', 'your-api-key-here'))
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,
+            temperature=0.7
+        )
+        
+        analysis = response.choices[0].message.content.strip()
+        return analysis
+        
+    except Exception as e:
+        print(f"LLM Analysis Error: {e}")
+        return "LLM analysis temporarily unavailable. The assessment is based on machine learning models trained on cybersecurity patterns."
 
 # ────────────────────────────── Main ──────────────────────────────
 if __name__ == '__main__':

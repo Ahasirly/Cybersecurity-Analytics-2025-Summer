@@ -42,6 +42,7 @@ export interface PredictionResponse {
   user_risk: number;
   final_risk_level: 'Safe' | 'Suspicious' | 'High' | 'Critical';
   confidence: number;
+  llm_analysis?: string;
 }
 
 // User Decision Types
