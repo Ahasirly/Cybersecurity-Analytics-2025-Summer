@@ -708,7 +708,7 @@ Use markdown formatting:
         
     except Exception as e:
         print(f"LLM Analysis Error: {e}")
-        return "LLM analysis temporarily unavailable. The assessment is based on machine learning models trained on cybersecurity patterns."
+        return "LLM analysis temporarily unavailable. The assessment is based on Deep learning models trained on cybersecurity patterns."
 
 # ────────────────────────────── Main ──────────────────────────────
 if __name__ == '__main__':
