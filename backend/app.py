@@ -219,11 +219,22 @@ def load_models():
     
     # Load model-specific datasets
     print("📚 Loading model-specific datasets...")
-    url_data = pd.read_csv(DATA_DIR / "URL_model_input_score_0.1_0.98.csv")
+    # **FIXED**: Use fused dataset for URL data instead of the problematic URL_model_input_score file
+    fused_data = pd.read_csv(DATA_DIR / "fused_with_botnet_saved.csv", low_memory=False)
+    # Extract URL samples from fused data
+    url_columns = [col for col in fused_data.columns if col in url_features]
+    url_data = fused_data[url_columns + ['sample_id'] if 'sample_id' in fused_data.columns else url_columns].copy()
+    # Add a simple label based on some criteria or use random for demo (you may want to adjust this)
+    if 'BinaryLabel' in fused_data.columns:
+        url_data['label'] = fused_data['BinaryLabel']
+    else:
+        # Create demo labels - this should be replaced with actual labels
+        url_data['label'] = np.random.choice([0, 1], size=len(url_data), p=[0.8, 0.2])
+    
     network_data = pd.read_csv(DATA_DIR / "network_score_sampled_from100w.csv")
     user_data = pd.read_csv(DATA_DIR / "user_encoded_dataset.csv")
     
-    print(f"🔗 URL dataset: {len(url_data)} samples")
+    print(f"🔗 URL dataset: {len(url_data)} samples (from fused data)")
     print(f"🌐 Network dataset: {len(network_data)} samples")
     print(f"👤 User dataset: {len(user_data)} samples")
     
@@ -232,40 +243,54 @@ def load_models():
 # ────────────────────────────── Prediction Functions ──────────────────────────────
 def predict_url_risk(data):
     """Predict URL risk score using complete feature data"""
-    # 获取scaler期望的特征名称
+    # Get the feature names expected by the scaler
     scaler_features = url_scaler.feature_names_in_
     
-    # 创建URL特征向量，使用scaler期望的特征名称
+    # Create URL feature vector using the feature names expected by the scaler
     url_feature_vector = []
+    missing_count = 0
+    
     for feature in scaler_features:
-        url_feature_vector.append(data.get(feature, 0.0))
+        value = data.get(feature, 0.0)
+        if pd.isna(value) or value is None:
+            url_feature_vector.append(0.0)
+            missing_count += 1
+        else:
+            url_feature_vector.append(float(value))
+    
+    # **IMPROVED**: Check if too many features are missing
+    missing_ratio = missing_count / len(scaler_features)
+    if missing_ratio > 0.5:  # If more than 50% features are missing
+        print(f"⚠️  URL risk: Too many missing features ({missing_count}/{len(scaler_features)}, {missing_ratio:.1%}), using default medium risk")
+        return 0.3  # Return medium risk for samples with too many missing features
     
     X = np.array(url_feature_vector).reshape(1, -1)
     
-    # 创建DataFrame以保持特征名称
+    # **RESTORED**: Now using original data from fused dataset, so we need scaler transformation
+    # Create DataFrame to maintain feature names
     X_df = pd.DataFrame(X, columns=scaler_features)
     X_scaled = url_scaler.transform(X_df)
     X_cnn = X_scaled.reshape((1, X_scaled.shape[1], 1))
     
-    # 使用模型预测
+    # Use model for prediction
     prediction = url_model.predict(X_cnn, verbose=0)[0][0]
     
-    # 如果模型输出1.0表示benign（良性），那么风险值 = 1 - 输出值
-    # 这样：1.0 (benign) -> 0.0 (低风险), 0.0 (malicious) -> 1.0 (高风险)
+    # If model output 1.0 means benign, then risk score = 1 - output value
+    # So: 1.0 (benign) -> 0.0 (low risk), 0.0 (malicious) -> 1.0 (high risk)
     risk_score = 1.0 - prediction
     
-    # 限制在合理范围内
-    risk_score = max(0.05, min(0.95, risk_score))
+    # Limit to reasonable range - lower minimum risk limit to allow truly safe URLs to show lower risk
+    risk_score = max(0.01, min(0.95, risk_score))
     
-    print(f"🔍 URL risk from model: {prediction:.6f} -> final: {risk_score:.4f}")
+    print(f"🔍 URL risk from model: {prediction:.6f} -> final: {risk_score:.4f} (missing: {missing_count}/{len(scaler_features)})")
     return float(risk_score)
 
 def predict_network_risk(data):
     """Predict network risk score using complete feature data"""
-    # 获取scaler期望的特征名称
+    # Get the feature names expected by the scaler
     scaler_features = network_scaler.feature_names_in_
     
-    # 创建网络特征向量，使用scaler期望的特征名称
+    # Create network feature vector using the feature names expected by the scaler
     network_feature_vector = []
     for feature in scaler_features:
         network_feature_vector.append(data.get(feature, 0.0))
@@ -297,10 +322,10 @@ def predict_network_risk(data):
 
 def predict_user_risk(data):
     """Predict user risk score using complete feature data"""
-    # 获取scaler期望的特征名称
+    # Get the feature names expected by the scaler
     scaler_features = user_scaler.feature_names_in_
     
-    # 创建用户特征向量，使用scaler期望的特征名称
+    # Create user feature vector using the feature names expected by the scaler
     user_feature_vector = []
     for feature in scaler_features:
         user_feature_vector.append(data.get(feature, 0.0))
@@ -556,15 +581,46 @@ def predict_teaching():
             network_risk = predict_network_risk(data)
             user_risk = predict_user_risk(data)
         
-        # Calculate final risk level and confidence using original risk scores
-        avg_risk = (url_risk + network_risk + user_risk) / 3
+        # 基础平均风险
+        base_avg_risk = (url_risk + network_risk + user_risk) / 3
         
-        if avg_risk >= 0.8:
-            risk_level = "Critical"
-        elif avg_risk >= 0.6:
-            risk_level = "High"
-        elif avg_risk >= 0.5:
-            risk_level = "Suspicious"
+        # 智能Dynamic Weight逻辑：考虑多个高风险类别的累积效应
+        final_confidence = base_avg_risk
+        
+        # 统计高风险类别数量和严重程度
+        risk_scores = [url_risk, network_risk, user_risk]
+        risk_names = ['URL', 'Network', 'User']
+        high_risks = []
+        total_boost = 0.0
+        
+        for i, (risk, name) in enumerate(zip(risk_scores, risk_names)):
+            if risk >= 0.9:  # 90%以上极高风险
+                boost = 0.25
+                high_risks.append(f"{name} extremely high ({risk*100:.1f}%)")
+                total_boost += boost
+            elif risk >= 0.7:  # 70%以上高风险
+                boost = 0.15
+                high_risks.append(f"{name} high ({risk*100:.1f}%)")
+                total_boost += boost
+            elif risk >= 0.5:  # 50%以上中等风险
+                boost = 0.08
+                high_risks.append(f"{name} elevated ({risk*100:.1f}%)")
+                total_boost += boost
+        
+        # 应用累积加权，但限制最大加权
+        if total_boost > 0:
+            # 限制总加权不超过0.4，并且不超过最高风险值
+            max_risk = max(risk_scores)
+            total_boost = min(total_boost, 0.4)
+            final_confidence = min(base_avg_risk + total_boost, max_risk, 0.95)
+            print(f"🚨 Multiple risk factors detected: {', '.join(high_risks)}")
+            print(f"📊 Base risk: {base_avg_risk:.3f} + cumulative boost: {total_boost:.3f} = {final_confidence:.3f}")
+        else:
+            print(f"📊 Risk calculation: URL={url_risk:.3f}, Network={network_risk:.3f}, User={user_risk:.3f} → Final={final_confidence:.3f}")
+        
+        # 简化为Safe/Unsafe，以50%为分界线
+        if final_confidence >= 0.5:
+            risk_level = "Unsafe"
         else:
             risk_level = "Safe"
         
@@ -573,7 +629,7 @@ def predict_teaching():
             "network_risk": round(network_risk, 4),
             "user_risk": round(user_risk, 4),
             "final_risk_level": risk_level,
-            "confidence": round(avg_risk, 4)
+            "confidence": round(final_confidence, 4)
         })
         
     except Exception as e:

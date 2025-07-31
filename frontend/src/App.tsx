@@ -3,8 +3,7 @@ import './App.css';
 import { SampleData, UserDecision as UserDecisionType, PredictionResponse } from './types';
 import { api } from './services/api';
 import SampleViewer from './components/SampleViewer';
-import UserDecision from './components/UserDecision';
-import RiskResult from './components/RiskResult';
+import FlipAssessmentCard from './components/FlipAssessmentCard';
 
 function App() {
   const [sample, setSample] = useState<SampleData | null>(null);
@@ -13,6 +12,7 @@ function App() {
   const [userSampleId, setUserSampleId] = useState<number | null>(null);
   const [userDecision, setUserDecision] = useState<UserDecisionType | null>(null);
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
+  const [hiddenPrediction, setHiddenPrediction] = useState<PredictionResponse | null>(null); // Hidden prediction for feature marking
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +27,10 @@ function App() {
     try {
       await api.healthCheck();
       setBackendStatus('connected');
+      // Automatically get first sample after successful connection
+      if (!sample) {
+        await getNewSample();
+      }
     } catch (err) {
       setBackendStatus('error');
       setError('Unable to connect to backend server, please ensure backend is running');
@@ -42,6 +46,7 @@ function App() {
     setUserSampleId(null);
     setUserDecision(null);
     setPrediction(null);
+    setHiddenPrediction(null);
 
     try {
       const response = await api.getRandomSample();
@@ -49,6 +54,21 @@ function App() {
       setUrlSampleId(response.url_sample_id);
       setNetworkSampleId(response.network_sample_id);
       setUserSampleId(response.user_sample_id);
+      
+      // Immediately get prediction result for feature marking (but not displayed to user)
+      try {
+        const predictionResponse = await api.predictSample(
+          response.sample, 
+          response.url_sample_id, 
+          response.network_sample_id, 
+          response.user_sample_id
+        );
+        setHiddenPrediction(predictionResponse);
+        console.log('🔍 Hidden prediction for feature marking:', predictionResponse);
+      } catch (predErr) {
+        console.warn('Failed to get hidden prediction for feature marking:', predErr);
+        // Prediction failure does not affect sample display, only features will not be highlighted
+      }
     } catch (err) {
       setError('Failed to fetch sample, please try again');
       console.error('Error fetching sample:', err);
@@ -57,15 +77,30 @@ function App() {
     }
   };
 
+  const handleNewAssessment = () => {
+    setPrediction(null);
+    setUserDecision(null);
+  };
+
   const handleSubmit = async () => {
-    if (!sample || !userDecision || urlSampleId === null || networkSampleId === null || userSampleId === null) return;
+    if (!sample || !userDecision) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const response = await api.predictSample(sample, urlSampleId, networkSampleId, userSampleId);
-      setPrediction(response);
+      // Use the already obtained hidden prediction result
+      if (hiddenPrediction) {
+        setPrediction(hiddenPrediction);
+        console.log('📊 Using cached prediction result:', hiddenPrediction);
+      } else {
+        // If hidden prediction is not available for some reason, fetch a new one
+        console.warn('No hidden prediction available, fetching new prediction...');
+        if (urlSampleId !== null && networkSampleId !== null && userSampleId !== null) {
+          const response = await api.predictSample(sample, urlSampleId, networkSampleId, userSampleId);
+          setPrediction(response);
+        }
+      }
     } catch (err) {
       setError('Prediction failed, please try again');
       console.error('Error predicting:', err);
@@ -212,21 +247,28 @@ function App() {
 
         <div className="space-y-8">
           {/* Sample Viewer */}
-          <SampleViewer sample={sample} sampleId={urlSampleId} />
+          {sample && urlSampleId && (
+            <SampleViewer 
+              sample={sample} 
+              sampleId={urlSampleId}
+              riskScores={hiddenPrediction ? {
+                url_risk: hiddenPrediction.url_risk,
+                network_risk: hiddenPrediction.network_risk,
+                user_risk: hiddenPrediction.user_risk,
+                final_risk_level: hiddenPrediction.final_risk_level
+              } : undefined}
+            />
+          )}
 
-          {/* User Decision */}
-          <UserDecision
+          {/* Flip Assessment Card */}
+          <FlipAssessmentCard
             userDecision={userDecision}
             onDecisionChange={(decision: UserDecisionType) => setUserDecision(decision)}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
             hasSample={!!sample}
-          />
-
-          {/* Risk Result */}
-          <RiskResult
             prediction={prediction}
-            userDecision={userDecision}
+            onNewAssessment={handleNewAssessment}
           />
         </div>
       </main>

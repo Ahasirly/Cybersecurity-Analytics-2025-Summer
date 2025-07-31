@@ -45,10 +45,10 @@ export interface PredictionResponse {
 }
 
 // User Decision Types
-export type UserDecision = 'safe' | 'suspicious' | 'high' | 'critical';
+export type UserDecision = 'Safe' | 'Unsafe';
 
 // Risk Level Types
-export type RiskLevel = 'Safe' | 'Suspicious' | 'High' | 'Critical';
+export type RiskLevel = 'Safe' | 'Unsafe';
 
 // Feature Categories
 export interface FeatureCategory {

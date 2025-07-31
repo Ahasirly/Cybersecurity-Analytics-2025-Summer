@@ -74,9 +74,9 @@ df["net_risk"] = predict_block(
     MODEL_DIR / "cnn_network_model_finetuned_v3_final.h5"
 )
 
-# 🎯 计算网络流量风险分数（0~1），使用增强分化方法
-net_risk_normalized = (df["net_risk"] - df["net_risk"].min()) / (df["net_risk"].max() - df["net_risk"].min())
-df["net_risk_score"] = net_risk_normalized ** 0.5  # 使用平方根增强低值，压缩高值
+# Calculate network traffic risk score (0~1) using enhanced differentiation method
+net_risk_normalized = (df["network_risk"] - df["network_risk"].min()) / (df["network_risk"].max() - df["network_risk"].min())
+df["net_risk_score"] = net_risk_normalized ** 0.5  # Use square root to enhance low values and compress high values
 
 print("📊 First 10 CNN network risk outputs:", df["net_risk"].values[:10])
 print("📈 Network risk stats:\n", df["net_risk"].describe())

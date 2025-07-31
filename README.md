@@ -1,319 +1,158 @@
 # Cybersecurity Analytic System
 
-A comprehensive AI-powered cybersecurity threat detection and analysis system that combines multiple machine learning models for real-time security assessment.
+A comprehensive cybersecurity risk assessment system that combines machine learning models to analyze URL, Network, and User behavior patterns for enhanced threat detection.
 
-## Overview
+## 🏗️ System Architecture
 
-This project implements an integrated cybersecurity analytics platform that provides:
+This system integrates three specialized ML models:
+- **URL Risk Analysis**: Detects malicious URLs using entropy, domain features, and structural patterns
+- **Network Traffic Analysis**: Identifies suspicious network flows using packet statistics and traffic patterns  
+- **User Behavior Analysis**: Monitors login patterns, session behavior, and access anomalies
 
-- **URL Threat Detection**: Machine learning-based malicious URL identification
-- **Network Traffic Analysis**: Real-time network flow anomaly detection  
-- **User Behavior Analytics**: Behavioral pattern analysis for insider threat detection
-- **Interactive Learning Interface**: Educational platform for cybersecurity training
+The system provides an interactive teaching interface where users can assess security scenarios and compare their judgment with AI predictions.
 
-The system features a Flask-based backend with pre-trained AI models and a React TypeScript frontend for real-time threat visualization and user interaction.
+## 🚀 Features
 
-## Architecture
+- **Real-time Risk Assessment**: Instant analysis of URL, network, and user data
+- **Dynamic Risk Weighting**: Advanced algorithms that amplify confidence when multiple high-risk indicators are detected
+- **Interactive Learning Interface**: Flip-card UI for user assessment and AI comparison
+- **Feature-level Highlighting**: Visual indicators showing which specific features contribute to risk
+- **Comprehensive Data Support**: Handles missing values and provides fallback mechanisms
+
+## 📁 Project Structure
 
 ```
 cybersec_fusion_system/
-├── backend/                 # Flask API server
-│   ├── app.py              # Main application
-│   ├── models/             # Pre-trained ML models
-│   ├── data/               # Training datasets
-│   ├── features/           # Feature definitions
-│   └── requirements.txt    # Python dependencies
-├── frontend/               # React TypeScript UI
-│   ├── src/               # Source code
-│   ├── public/            # Static assets
-│   └── package.json       # Node.js dependencies
-└── scripts/               # Utility scripts
+├── backend/                    # Python Flask API server
+│   ├── app.py                 # Main Flask application with prediction endpoints
+│   ├── models/                # Trained ML models (.h5) and scalers (.pkl)
+│   ├── features/              # Feature definition files (.txt)
+│   ├── data/                  # Training and sample datasets (.csv)
+│   └── requirements.txt       # Python dependencies
+├── frontend/                   # React TypeScript web application
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   │   ├── FlipAssessmentCard.tsx  # Main assessment interface
+│   │   │   └── SampleViewer.tsx        # Feature display component
+│   │   ├── services/          # API communication layer
+│   │   └── types.ts          # TypeScript type definitions
+│   └── public/               # Static assets
+└── scripts/                  # Utility and test scripts
 ```
 
-## Prerequisites
+## 🛠️ Installation & Setup
 
-Before setting up the project, ensure you have the following installed:
+### Prerequisites
+- Python 3.11+
+- Node.js 16+
+- npm or yarn
 
-### Required Software
-
-1. **Python 3.11** (recommended for compatibility)
-   - Download from: https://www.python.org/downloads/
-   - Verify installation: `python3.11 --version`
-
-2. **Node.js** (version 16 or higher)
-   - Download from: https://nodejs.org/
-   - Verify installation: `node --version` and `npm --version`
-
-3. **Git**
-   - Download from: https://git-scm.com/
-   - Verify installation: `git --version`
-
-### System Dependencies
-
-**For macOS:**
-```bash
-# Install Homebrew if not already installed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install Python 3.11
-brew install python@3.11
-```
-
-**For Ubuntu/Debian:**
-```bash
-sudo apt update
-sudo apt install python3.11 python3.11-venv python3.11-dev
-sudo apt install nodejs npm
-```
-
-**For Windows:**
-- Install Python 3.11 from the official website
-- Install Node.js from the official website
-- Use PowerShell or Command Prompt for commands
-
-## Installation Guide
-
-### Step 1: Clone the Repository
-
-```bash
-git clone https://github.com/Ahasirly/Cybersecurity-Analytics-2025-Summer.git
-cd Cybersecurity-Analytics-2025-Summer
-```
-
-### Step 2: Backend Setup
-
-#### 2.1 Navigate to Backend Directory
+### Backend Setup
 ```bash
 cd backend
-```
-
-#### 2.2 Create Virtual Environment
-```bash
-# Create virtual environment with Python 3.11
-python3.11 -m venv venv
-
-# Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-
-# On Windows:
-venv\Scripts\activate
-```
-
-#### 2.3 Install Python Dependencies
-```bash
-# Ensure you're in the virtual environment (should see (venv) in prompt)
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-**Note**: If you encounter scikit-learn version conflicts, install the specific version:
-```bash
-pip install scikit-learn==1.6.1
-```
-
-#### 2.4 Verify Backend Installation
-```bash
-python app.py
-```
-
-You should see output similar to:
-```
-Loading models...
-Loading model-specific datasets...
-URL dataset: 10000 samples
-Network dataset: 50000 samples
-User dataset: 9537 samples
-All models and datasets loaded successfully!
-Starting Cybersecurity Fusion System Backend...
-* Running on http://127.0.0.1:5001
-```
-
-Press `Ctrl+C` to stop the server for now.
-
-### Step 3: Frontend Setup
-
-#### 3.1 Navigate to Frontend Directory
-```bash
-# From the project root directory
-cd frontend
-```
-
-#### 3.2 Install Node.js Dependencies
-```bash
-npm install
-```
-
-**If you encounter dependency issues:**
-```bash
-# Install missing dependencies
-npm install source-map-js
-npm audit fix
-```
-
-#### 3.3 Verify Frontend Installation
-```bash
-npm start
-```
-
-The frontend should compile successfully and display:
-```
-Compiled successfully!
-You can now view frontend in the browser.
-Local: http://localhost:3000
-```
-
-## Running the Application
-
-### Method 1: Manual Startup (Recommended for Development)
-
-#### Terminal 1 - Backend Server
-```bash
-cd backend
+python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 python app.py
 ```
 
-#### Terminal 2 - Frontend Server
+### Frontend Setup
 ```bash
 cd frontend
+npm install
 npm start
 ```
 
-### Method 2: Using the Startup Script
-
+### Quick Start Script
 ```bash
-# Make the script executable (macOS/Linux only)
 chmod +x start_backend.sh
 ./start_backend.sh
 ```
 
-Then in another terminal:
-```bash
-cd frontend && npm start
-```
+## 🎯 Usage
 
-## Accessing the Application
+1. **Start Services**: Launch both backend (port 5000) and frontend (port 3000)
+2. **Load Sample**: System automatically fetches a random sample on startup
+3. **Assess Risk**: Review the displayed features and make your security assessment
+4. **Compare Results**: Submit your decision to see AI prediction and comparison
+5. **New Assessment**: Click "New Assessment" to analyze another sample
 
-Once both servers are running:
+## 🧠 Machine Learning Models
 
-- **Frontend Interface**: http://localhost:3000
-- **Backend API**: http://localhost:5001
-- **Health Check**: http://localhost:5001/health
+### URL Model
+- **Architecture**: 1D CNN with feature normalization
+- **Features**: URL entropy, character counts, structural patterns, domain reputation
+- **Output**: Risk score (0-1) where 1 indicates malicious content
 
-## API Endpoints
+### Network Model  
+- **Architecture**: Deep neural network with traffic flow analysis
+- **Features**: Packet statistics, flow duration, data rates, protocol patterns
+- **Output**: Risk score (0-1) for network traffic anomalies
 
-### Health Check
-```
-GET /health
-Response: {"status": "healthy", "message": "Cybersecurity Fusion System Backend is running"}
-```
+### User Model
+- **Architecture**: Behavioral pattern classifier
+- **Features**: Login patterns, session metrics, access timing, IP reputation
+- **Output**: Risk score (0-1) for user behavior anomalies
 
-### Get Random Sample
-```
-GET /random_sample
-Response: {
-  "sample": {...},
-  "url_sample_id": 123,
-  "network_sample_id": 456,
-  "user_sample_id": 789
-}
-```
+## ⚙️ Dynamic Risk Logic
 
-### Predict Risk
-```
-POST /predict
-Body: {
-  "url_sample_id": 123,
-  "network_sample_id": 456,
-  "user_sample_id": 789
-}
-Response: {
-  "url_risk": 0.05,
-  "network_risk": 0.59,
-  "user_risk": 0.20,
-  "final_risk_level": "High",
-  "confidence": 0.28
-}
-```
+The system implements sophisticated risk weighting:
+- **Individual Thresholds**: 90%+ (extreme), 70%+ (high), 50%+ (elevated)
+- **Cumulative Boosting**: Multiple risk factors increase overall confidence
+- **Confidence Caps**: Maximum 95% confidence with safeguards against false positives
+- **Fallback Mechanisms**: Graceful handling of missing data and model failures
 
-## Troubleshooting
+## 🎨 User Interface
+
+- **Clean Design**: Modern, medical-report-inspired visual style
+- **Feature Highlighting**: Color-coded indicators (red=danger, orange=abnormal)
+- **Flip Animation**: Smooth transition between assessment and results
+- **Responsive Layout**: Works across desktop and mobile devices
+- **Accessibility**: High contrast colors and clear typography
+
+## 🔧 API Endpoints
+
+- `GET /health` - Health check endpoint
+- `GET /sample` - Fetch random sample data
+- `POST /predict` - Submit sample for risk analysis
+
+## 📊 Data Processing
+
+The system handles:
+- **Missing Values**: Intelligent imputation and default handling
+- **Data Normalization**: Standardized feature scaling across models
+- **Feature Engineering**: Automated extraction of security-relevant patterns
+- **Real-time Processing**: Sub-second response times for all predictions
+
+## 🚀 Deployment
+
+### Development Mode
+- Backend: `python app.py` (Flask dev server)
+- Frontend: `npm start` (React dev server)
+
+### Production Mode
+- Backend: Use gunicorn or uwsgi with proper WSGI configuration
+- Frontend: `npm run build` and serve with nginx or similar
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement changes with proper testing
+4. Submit a pull request with detailed description
+
+## 📝 License
+
+This project is developed for educational and research purposes in cybersecurity.
+
+## 🔍 Troubleshooting
 
 ### Common Issues
+- **Port Conflicts**: Ensure ports 3000 and 5000 are available
+- **Model Loading**: Verify all `.h5` and `.pkl` files are present in `/models/`
+- **Dependencies**: Run `pip install -r requirements.txt` and `npm install`
+- **Data Files**: Ensure CSV datasets are present in `/data/` directory
 
-#### 1. Python Version Compatibility
-**Error**: `ModuleNotFoundError` or version conflicts
-**Solution**: Ensure you're using Python 3.11 and have activated the virtual environment
-
-#### 2. Backend Port Already in Use
-**Error**: `Address already in use`
-**Solution**: 
-```bash
-# Find and kill the process using port 5001
-lsof -ti:5001 | xargs kill -9
-```
-
-#### 3. Frontend Compilation Errors
-**Error**: Missing dependencies or compilation failures
-**Solution**:
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-npm install source-map-js
-npm start
-```
-
-#### 4. Model Loading Errors
-**Error**: `AttributeError` or pickle errors
-**Solution**: Ensure scikit-learn version 1.6.1 is installed:
-```bash
-pip install scikit-learn==1.6.1
-```
-
-### Checking Service Status
-
-```bash
-# Check if backend is running
-curl http://localhost:5001/health
-
-# Check if frontend is accessible
-curl http://localhost:3000
-```
-
-## Development Guidelines
-
-### Backend Development
-- Follow PEP 8 style guidelines
-- Add type hints for new functions
-- Update requirements.txt when adding dependencies
-- Test API endpoints with curl or Postman
-
-### Frontend Development
-- Use TypeScript for all new components
-- Follow React best practices
-- Maintain responsive design principles
-- Test components across different browsers
-
-## Model Information
-
-The system includes pre-trained models for:
-
-1. **URL Detection Model** (`malicious_url_model.h5`)
-   - Architecture: Convolutional Neural Network
-   - Features: 56 URL-based features
-
-2. **Network Traffic Model** (`cnn_network_model.h5`)
-   - Architecture: CNN for sequential data
-   - Features: 78 network flow features
-
-3. **User Behavior Model** (`dnn_user_mixed_model.h5`)
-   - Architecture: Deep Neural Network
-   - Features: 9 behavioral features
-
-## Dataset Information
-
-- **URL Dataset**: 10,000 samples with benign/malicious labels
-- **Network Dataset**: 50,000 network flow records
-- **User Dataset**: 9,537 user behavior profiles
+### Debug Mode
+Set `DEBUG=True` in `app.py` for detailed error logging and hot reloading.
 

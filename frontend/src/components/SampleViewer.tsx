@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { SampleData } from '../types';
 
 interface SampleViewerProps {
-  sample: SampleData | null;
-  sampleId: number | null;
+  sample: SampleData;
+  sampleId: number;
+  riskScores?: {
+    url_risk: number;
+    network_risk: number;
+    user_risk: number;
+    final_risk_level: string;
+  };
 }
 
 interface FeatureDialogProps {
@@ -78,7 +84,7 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ isOpen, onClo
             overflow: 'auto'
           }}>
             {features.map((feature, index) => {
-              // 检查是否是教学特征（前几个特征）
+              // Check if this is a teaching feature (first few features)
               const isTeachingFeature = index < (title === 'URL Features' ? 6 : title === 'User Features' ? 7 : 7);
               
               return (
@@ -132,7 +138,7 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ isOpen, onClo
   );
 };
 
-const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
+const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId, riskScores }) => {
   const [selectedFeature, setSelectedFeature] = useState<{
     name: string;
     displayName: string;
@@ -193,16 +199,16 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
     { name: 'Flow Byts/s', description: 'Data transfer rate (bytes/second)' }
   ];
 
-  // 完整的特征配置数据（包含教学特征）
+  // Complete feature configuration data (including teaching features)
   const fullUrlFeatures = [
-    // 教学特征 - 始终显示
+    // Teaching features - always displayed
     { name: 'url_entropy', description: 'URL randomness/complexity score' },
     { name: 'url_count_dot', description: 'Number of dots in URL' },
     { name: 'url_len', description: 'Total length of URL' },
     { name: 'url_count_hyphen', description: 'Number of hyphens in URL' },
     { name: 'url_count_letter', description: 'Number of letters in URL' },
     { name: 'url_count_digit', description: 'Number of digits in URL' },
-    // 其他完整特征
+    // Other complete features
     { name: 'url_has_login', description: 'Whether URL contains login-related keywords' },
     { name: 'url_has_client', description: 'Whether URL contains client-related keywords' },
     { name: 'url_has_server', description: 'Whether URL contains server-related keywords' },
@@ -260,19 +266,19 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
   ];
 
   const fullUserFeatures = [
-    // 教学特征 - 始终显示
+    // Teaching features - always displayed
     { name: 'login_attempts', description: 'Total number of login attempts' },
     { name: 'session_duration', description: 'User session duration (seconds)' },
     { name: 'failed_logins', description: 'Number of failed login attempts' },
     { name: 'login_failure_rate', description: 'Percentage of failed logins' },
     { name: 'ip_reputation_score', description: 'IP reputation score (0-1)' },
-    // 其他完整特征
+    // Other complete features
     { name: 'network_packet_size', description: 'Size of network packets' },
     { name: 'unusual_time_access', description: 'Whether accessed at unusual times' }
   ];
 
   const fullNetworkFeatures = [
-    // 教学特征 - 始终显示
+    // Teaching features - always displayed
     { name: 'Flow Duration', description: 'Network flow duration (microseconds)' },
     { name: 'Tot Fwd Pkts', description: 'Total packets sent to destination' },
     { name: 'Flow Pkts/s', description: 'Packet transfer rate (packets/second)' },
@@ -280,7 +286,7 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
     { name: 'Pkt Len Mean', description: 'Average packet size across all packets' },
     { name: 'Pkt Size Avg', description: 'Average packet size in bytes' },
     { name: 'Flow Byts/s', description: 'Data transfer rate (bytes/second)' },
-    // 其他完整特征
+    // Other complete features
     { name: 'ACK Flag Cnt', description: 'Number of ACK flags' },
     { name: 'Active Max', description: 'Maximum active time' },
     { name: 'Active Mean', description: 'Mean active time' },
@@ -361,9 +367,8 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
     { name: 'URG Flag Cnt', description: 'Number of URG flags' }
   ];
 
-  const handleFeatureClick = (feature: { name: string; description: string }, displayName: string) => {
+  const handleFeatureClick = (feature: { name: string; description: string }, displayName: string, guidance: string) => {
     const value = sample[feature.name as keyof SampleData] || 0;
-    const guidance = getSecurityGuidance(feature.name);
     
     setSelectedFeature({
       name: feature.name,
@@ -446,35 +451,125 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
     return nameMap[name] || name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const getSecurityGuidance = (name: string) => {
-    const guidanceMap: { [key: string]: string } = {
-      'url_entropy': 'URL complexity score (0-10). Higher values indicate more complex/random URLs. Values above 4.0 often indicate obfuscated or malicious URLs.',
-      'url_count_dot': 'Number of dots in URL. More dots can indicate subdomain manipulation. Legitimate URLs typically have 1-2 dots, while malicious ones may have 3+ dots.',
-      'url_len': 'Total length of URL in characters. Very long URLs (>100 chars) may contain malicious parameters or obfuscation.',
-      'url_count_hyphen': 'Number of hyphens in URL. Excessive hyphens can indicate domain spoofing attempts. Legitimate domains rarely have more than 2-3 hyphens.',
-      'url_count_letter': 'Number of letters in URL. Normal URLs should have a reasonable letter count. Extremely high or low letter counts may indicate suspicious URLs.',
-      'url_count_digit': 'Number of digits in URL. Many digits may indicate suspicious or generated URLs. Legitimate URLs typically have fewer digits than letters.',
-      'login_attempts': 'Total number of login attempts. High number of attempts may indicate brute force attacks. More than 5 attempts in a short period is suspicious.',
-      'session_duration': 'User session duration in seconds. Very short sessions may indicate automated attacks. Sessions under 30 seconds are often suspicious.',
-      'failed_logins': 'Number of failed login attempts. Multiple failed logins suggest potential security threats. 3+ failed attempts indicate possible attack.',
+  const getValueStatus = (featureName: string, value: number | string, riskScores?: any) => {
+    // Only mark as abnormal when ML risk scores are available, based on overall category risk
+    if (riskScores) {
+      // URL features based on URL risk score
+      const urlFeatures = ['url_entropy', 'url_count_dot', 'url_len', 'url_count_hyphen', 'url_count_letter', 'url_count_digit'];
+      // Network features based on Network risk score  
+      const networkFeatures = ['Flow Duration', 'Tot Fwd Pkts', 'Flow Pkts/s', 'Fwd Pkt Len Max', 'Pkt Len Mean', 'Pkt Size Avg', 'Flow Byts/s'];
+      // User features based on User risk score
+      const userFeatures = ['login_attempts', 'failed_logins', 'session_duration', 'ip_reputation_score', 'browser_type', 'encryption_used', 'protocol_type'];
+      
+      let categoryRisk = 0;
+      if (urlFeatures.includes(featureName)) {
+        categoryRisk = riskScores.url_risk || 0;
+      } else if (networkFeatures.includes(featureName)) {
+        categoryRisk = riskScores.network_risk || 0;
+      } else if (userFeatures.includes(featureName)) {
+        categoryRisk = riskScores.user_risk || 0;
+      }
+      
+      // Based on ML model category risk judgment
+      if (categoryRisk >= 0.7) { // 70% or more high risk
+        return { status: 'danger', color: '#dc2626' };
+      } else if (categoryRisk >= 0.5) { // 50% or more moderate risk
+        return { status: 'abnormal', color: '#d97706' };
+      }
+    }
+    
+    // For string types, check for explicit known risk values
+    if (typeof value === 'string') {
+      const highRiskValues = ['DES', 'MD5']; // Explicitly high risk
+      if (highRiskValues.includes(value)) {
+        return { status: 'danger', color: '#dc2626' };
+      }
+    }
+    
+    // Default to normal (avoid false positives based on inaccurate thresholds)
+    return { status: 'normal', color: '#374151' };
+  };
 
-      'protocol_type': 'Network protocol used (TCP/UDP/ICMP). Different protocols have different security implications.',
-      'encryption_used': 'Encryption method (AES/DES/Unknown). Stronger encryption (AES) is generally more secure.',
-      'browser_type': 'Web browser used (Chrome/Firefox/Safari/Edge). Some browsers may have different security vulnerabilities.',
-      'ip_reputation_score': 'IP reputation score (0-1). Lower scores indicate IPs with poor reputation. Scores below 0.3 suggest malicious IP addresses.',
-      'Flow Duration': 'Network flow duration in microseconds. Very short flows may indicate scanning or attack attempts. Flows under 1,000,000 microseconds are often suspicious.',
-      'Tot Fwd Pkts': 'Total forward packets. Unusual packet counts may indicate abnormal traffic patterns. Very high or very low counts are suspicious.',
-      'Flow Pkts/s': 'Flow packets per second. High packet rates may indicate DDoS or scanning activity. Rates above 1000 packets/second are concerning.',
-      'Fwd Pkt Len Max': 'Maximum forward packet length in bytes. Very large packets may indicate data exfiltration. Packets over 1500 bytes should be investigated.',
-      'Pkt Len Mean': 'Mean packet length in bytes. Abnormal packet sizes may indicate malicious payloads. Very small or very large average sizes are suspicious.',
-      'Pkt Size Avg': 'Average packet size in bytes. Consistent small packets may indicate scanning behavior. Average sizes under 50 bytes are often suspicious.',
-      'Flow Byts/s': 'Flow bytes per second. High data transfer rates may indicate data theft or DDoS. Rates above 1MB/second should be investigated.'
+  const getObjectiveSecurityGuidance = (name: string, value: number | string): string => {
+    const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    const { status } = getValueStatus(name, value, riskScores);
+    
+    // Provide objective security guidance based on actual data values and status
+    const guidanceMap: Record<string, string> = {
+      'url_entropy': status === 'danger' ? `Very high entropy (${numValue.toFixed(2)}) suggests random/obfuscated URL - potentially malicious` :
+                     status === 'abnormal' ? `Moderate entropy (${numValue.toFixed(2)}) - review URL structure for suspicious patterns` :
+                     `Normal entropy level (${numValue.toFixed(2)}) - URL appears structured and readable`,
+      
+      'url_len': status === 'danger' ? `Extremely long URL (${numValue} characters) - often used in phishing attacks` :
+                 status === 'abnormal' ? `Long URL (${numValue} characters) - verify legitimacy before proceeding` :
+                 `Normal URL length (${numValue} characters) - within typical range`,
+      
+      'url_count_dot': status === 'abnormal' || status === 'danger' ? 
+                       `Excessive dots (${numValue}) may indicate subdomain abuse or URL manipulation` :
+                       `Normal dot count (${numValue}) - standard domain structure`,
+      
+      'login_attempts': status === 'danger' ? `High login attempts (${numValue}) - potential brute force attack` :
+                        status === 'abnormal' ? `Elevated login attempts (${numValue}) - monitor for suspicious activity` :
+                        `Normal login activity (${numValue} attempts)`,
+      
+      'failed_logins': status === 'danger' ? `High failed logins (${numValue}) - strong indicator of attack attempt` :
+                       status === 'abnormal' ? `Multiple failed logins (${numValue}) - investigate user authentication issues` :
+                       `Minimal failed logins (${numValue}) - normal authentication pattern`,
+      
+      'ip_reputation_score': status === 'danger' ? `Low IP reputation (${numValue.toFixed(2)}) - known malicious source` :
+                             status === 'abnormal' ? `Poor IP reputation (${numValue.toFixed(2)}) - proceed with caution` :
+                             `Good IP reputation (${numValue.toFixed(2)}) - trusted source`,
+      
+      'Flow Duration': status === 'danger' ? `Very long flow duration (${(numValue/1000000).toFixed(1)}s) - potential persistent connection attack` :
+                       status === 'abnormal' ? `Extended flow duration (${(numValue/1000000).toFixed(1)}s) - monitor for data exfiltration` :
+                       `Normal flow duration (${(numValue/1000000).toFixed(1)}s)`,
+      
+      'Flow Pkts/s': status === 'danger' ? `Extremely high packet rate (${numValue.toFixed(0)} pkt/s) - likely DDoS attack` :
+                     status === 'abnormal' ? `High packet rate (${numValue.toFixed(0)} pkt/s) - potential flooding attack` :
+                     `Normal packet rate (${numValue.toFixed(0)} pkt/s)`,
+      
+      'Flow Byts/s': status === 'danger' ? `Very high data rate (${(numValue/1000000).toFixed(1)} MB/s) - possible data exfiltration` :
+                     status === 'abnormal' ? `Elevated data rate (${(numValue/1000).toFixed(0)} KB/s) - monitor traffic patterns` :
+                     `Normal data transfer rate (${(numValue/1000).toFixed(0)} KB/s)`,
+      
+      'Tot Fwd Pkts': status === 'danger' ? `Excessive packet count (${numValue}) - potential flooding or DDoS` :
+                      status === 'abnormal' ? `High packet count (${numValue}) - unusual traffic volume` :
+                      `Normal packet count (${numValue})`,
+      
+      'Pkt Len Mean': status === 'danger' ? `Very large packets (${numValue.toFixed(0)} bytes) - potential payload injection` :
+                      status === 'abnormal' ? `Large packets (${numValue.toFixed(0)} bytes) - review packet contents` :
+                      `Normal packet size (${numValue.toFixed(0)} bytes)`,
+      
+      'session_duration': numValue < 60 ? `Very short session (${numValue}s) - potential automated/bot behavior` :
+                          numValue > 10800 ? `Extremely long session (${(numValue/3600).toFixed(1)}h) - review for session hijacking` :
+                          `Normal session duration (${Math.round(numValue/60)}min)`,
+      
+      'protocol_type': `Network protocol: ${value}. TCP is common for web traffic, UDP for streaming/gaming, ICMP for network diagnostics.`,
+      
+      'encryption_used': value === 'DES' ? `Weak encryption (${value}) - outdated and easily breakable` :
+                         value === 'AES' ? `Strong encryption (${value}) - current security standard` :
+                         `Encryption method: ${value}`,
+      
+      'browser_type': `Browser: ${value}. Different browsers have varying security features and vulnerability patterns.`,
+      
+      'url_count_hyphen': status === 'abnormal' || status === 'danger' ? 
+                          `Many hyphens (${numValue}) - potential domain spoofing attempt` :
+                          `Normal hyphen usage (${numValue}) in domain`,
+      
+      'url_count_digit': status === 'abnormal' || status === 'danger' ? 
+                         `Excessive digits (${numValue}) - may indicate generated/suspicious URL` :
+                         `Normal digit count (${numValue}) in URL`,
+      
+      'url_count_letter': status === 'abnormal' ? 
+                          `Unusual letter count (${numValue}) - review URL structure` :
+                          `Normal letter distribution (${numValue}) in URL`
     };
-    return guidanceMap[name] || 'This feature value is now displayed in its original scale for better understanding.';
+    
+    return guidanceMap[name] || `Value: ${numValue} - This metric shows ${name.replace(/_/g, ' ')} which helps assess security risk patterns.`;
   };
 
   const renderFeatureCard = (title: string, features: Array<{ name: string; description: string }>, color: string, type: 'url' | 'user' | 'network') => (
-    <div className="card p-6" style={{ height: 'fit-content' }}>
+    <div className="card p-6">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 className="text-xl font-bold" style={{ color }}>
           {title}
@@ -508,20 +603,33 @@ const SampleViewer: React.FC<SampleViewerProps> = ({ sample, sampleId }) => {
         {features.map((feature) => {
           const displayName = getDisplayName(feature.name);
           const value = sample[feature.name as keyof SampleData] || 0;
+          const { status, color: valueColor } = getValueStatus(feature.name, value, riskScores);
 
           return (
             <div 
               key={feature.name} 
               className="feature-card"
-              onClick={() => handleFeatureClick(feature, displayName)}
+              onClick={() => handleFeatureClick(feature, displayName, getObjectiveSecurityGuidance(feature.name, value))}
+              style={{ 
+                backgroundColor: status === 'danger' ? '#fef2f2' : status === 'abnormal' ? '#fef3c7' : 'white',
+                border: status === 'danger' ? '2px solid #fca5a5' : status === 'abnormal' ? '2px solid #fbbf24' : '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
             >
-              <div className="font-semibold text-gray-800 mb-1" style={{ fontSize: '14px' }}>
+              <div className="font-semibold text-gray-800 mb-1" style={{ 
+                fontSize: '14px'
+              }}>
                 {displayName}
               </div>
               <div className="text-gray-600 mb-2" style={{ fontSize: '12px' }}>
                 {feature.description}
               </div>
-              <div className="font-mono text-lg font-bold" style={{ color }}>
+              <div className="font-mono text-lg font-bold" style={{ 
+                color: status !== 'normal' ? valueColor : color
+              }}>
                 {typeof value === 'string' ? value : (typeof value === 'number' ? value.toFixed(4) : (parseFloat(String(value)) || 0).toFixed(4))}
               </div>
             </div>
